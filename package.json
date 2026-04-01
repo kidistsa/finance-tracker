@@ -1,0 +1,16 @@
+{
+  "name": "personal-finance-tracker",
+  "version": "1.0.0",
+  "scripts": {
+    "backend": "cd backend && uvicorn app.main:app --reload --port 9000",
+    "frontend": "cd frontend && npm run dev",
+    "dev": "concurrently \"npm run backend\" \"npm run frontend\"",
+    "install-all": "npm install && cd frontend && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "dependencies": {
+    "sqlalchemy": "^10.1.1"
+  }
+}
