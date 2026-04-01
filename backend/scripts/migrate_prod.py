@@ -1,8 +1,9 @@
+
 import sqlite3
 import os
 
 def migrate_to_postgres():
-    \"\"\"Prepare SQLite data for PostgreSQL migration\"\"\"
+    # \"\"\"Prepare SQLite data for PostgreSQL migration\"\"\"
     print("Preparing database for production...")
     
     # Your existing SQLite database
