@@ -9,16 +9,15 @@ const api = axios.create({
   },
 });
 
-// Add token to requests - FIXED
+// Add token to requests
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) {
-    config.headers.Authorization = `Bearer ${token}`;  // ← Fixed this line
+    config.headers.Authorization = 'Bearer ' + token;
   }
   return config;
 });
 
-// Handle auth errors
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -32,31 +31,32 @@ api.interceptors.response.use(
 
 export default api;
 
-// Auth Services
 export const authService = {
   register: (data) => api.post('/auth/register', data),
   login: (data) => api.post('/auth/login', data),
+  getCurrentUser: () => api.get('/auth/me'),
 };
 
-// Transaction Services
 export const transactionService = {
   getAll: (params) => api.get('/transactions', { params }),
+  getById: (id) => api.get(/transactions/),
+  create: (data) => api.post('/transactions', data),
+  update: (id, data) => api.put(/transactions/, data),
+  delete: (id) => api.delete(/transactions/),
   getSummary: (period = 'month') => api.get('/transactions/summary', { params: { period } }),
   uploadCSV: (file) => {
     const formData = new FormData();
     formData.append('file', file);
     return api.post('/transactions/upload-csv', formData, {
-      headers: { 
-        'Content-Type': 'multipart/form-data',
-      },
+      headers: { 'Content-Type': 'multipart/form-data' },
       params: { bank_format: 'default' }
     });
   },
 };
 
-// Budget Services
 export const budgetService = {
   getAll: (month) => api.get('/budgets', { params: { month } }),
   create: (data) => api.post('/budgets', data),
-  delete: (id) => api.delete(`/budgets/${id}`),  // ← Fixed this line
+  update: (id, data) => api.put(/budgets/, data),
+  delete: (id) => api.delete(/budgets/),
 };

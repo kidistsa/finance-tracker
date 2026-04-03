@@ -20,3 +20,127 @@ body {
   font-size: 1.2rem;
   color: #666;
 }
+.dark-mode {
+  background-color: #1a1a2e;
+  color: #eee;
+}
+
+.dark-mode .card {
+  background-color: #16213e;
+  color: #eee;
+}
+
+.dark-mode input,
+.dark-mode select,
+.dark-mode textarea {
+  background-color: #0f3460;
+  color: #eee;
+  border-color: #e94560;
+}
+:root {
+  --primary-color: #d64daf;
+  --primary-dark: #b83e8f;
+  --primary-light: #e87bc9;
+  --bg-light: #f5f7fa;
+  --bg-dark: #1a1a2e;
+  --card-light: #ffffff;
+  --card-dark: #16213e;
+  --text-light: #333333;
+  --text-dark: #eeeeee;
+  --border-light: #e2e8f0;
+  --border-dark: #2d3748;
+  --success: #4bc0c0;
+  --danger: #ff6384;
+  --warning: #ffce56;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: var(--bg-light);
+  color: var(--text-light);
+  transition: background 0.3s, color 0.3s;
+}
+
+/* Dark Mode Styles */
+body.dark-mode {
+  background: var(--bg-dark);
+  color: var(--text-dark);
+}
+
+body.dark-mode .card,
+body.dark-mode .stat-card,
+body.dark-mode .chart-card,
+body.dark-mode .recent-card,
+body.dark-mode .filters-card {
+  background: var(--card-dark);
+  color: var(--text-dark);
+  border: 1px solid var(--border-dark);
+}
+
+body.dark-mode input,
+body.dark-mode select,
+body.dark-mode textarea {
+  background: #0f3460;
+  color: var(--text-dark);
+  border-color: var(--border-dark);
+}
+
+body.dark-mode input::placeholder {
+  color: #718096;
+}
+
+body.dark-mode table {
+  color: var(--text-dark);
+}
+
+body.dark-mode th {
+  color: #a0aec0;
+  border-bottom-color: var(--border-dark);
+}
+
+body.dark-mode td {
+  border-bottom-color: var(--border-dark);
+}
+
+body.dark-mode .category-badge {
+  background: #2d3748;
+  color: #e2e8f0;
+}
+
+body.dark-mode .filter-input {
+  background: #0f3460;
+  border-color: var(--border-dark);
+  color: var(--text-dark);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+body.dark-mode ::-webkit-scrollbar-track {
+  background: #2d3748;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--primary-color);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-dark);
+}

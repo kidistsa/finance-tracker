@@ -1,4 +1,4 @@
-from typing import List, Dict, Any, Optional
+﻿from typing import List, Dict, Any, Optional
 from datetime import datetime
 from .base import BaseRepository
 from app.models.transaction import TransactionCreate, TransactionUpdate, Transaction
@@ -7,17 +7,14 @@ import uuid
 
 
 class TransactionRepository(BaseRepository):
-    """Transaction repository"""
     
     def __init__(self):
         super().__init__("transactions")
     
     async def create_transaction(self, transaction: TransactionCreate) -> Transaction:
-        """Create a new transaction"""
         transaction_id = str(uuid.uuid4())
         now = datetime.utcnow()
         
-        # Prepare data for insertion
         transaction_data = {
             "id": transaction_id,
             "user_id": transaction.user_id,
@@ -36,7 +33,6 @@ class TransactionRepository(BaseRepository):
             "updated_at": now.isoformat()
         }
         
-        # Save to database using direct SQL
         query = """
             INSERT INTO transactions (
                 id, user_id, amount, description, category, 
@@ -63,7 +59,6 @@ class TransactionRepository(BaseRepository):
             transaction_data["updated_at"]
         ))
         
-        # Return the created transaction
         return Transaction(
             id=transaction_id,
             user_id=transaction.user_id,
@@ -83,16 +78,12 @@ class TransactionRepository(BaseRepository):
         )
     
     async def get_transaction(self, transaction_id: str) -> Optional[Dict[str, Any]]:
-        """Get transaction by ID using direct SQL"""
-        query = "SELECT * FROM transactions WHERE id = ?"
+        # Optimized query - select only needed columns
+        query = "SELECT id, user_id, amount, description, category, transaction_type, date, source, created_at, updated_at FROM transactions WHERE id = ?"
         result = db_client.fetch_one(query, (transaction_id,))
-        
-        if result:
-            return dict(result)
-        return None
+        return dict(result) if result else None
     
     async def update_transaction(self, transaction_id: str, transaction: TransactionUpdate) -> bool:
-        """Update transaction using direct SQL"""
         update_fields = []
         params = []
         
@@ -123,7 +114,6 @@ class TransactionRepository(BaseRepository):
         return True
     
     async def delete_transaction(self, transaction_id: str) -> bool:
-        """Delete transaction using direct SQL"""
         query = "DELETE FROM transactions WHERE id = ?"
         cursor = db_client.execute_query(query, (transaction_id,))
         return cursor.rowcount > 0
@@ -136,8 +126,8 @@ class TransactionRepository(BaseRepository):
         category: Optional[str] = None,
         limit: int = 100
     ) -> List[Dict[str, Any]]:
-        """Get user transactions with filters using direct SQL"""
-        query = "SELECT * FROM transactions WHERE user_id = ?"
+        # Optimized query with proper indexing
+        query = "SELECT id, amount, description, category, transaction_type, date FROM transactions WHERE user_id = ?"
         params = [user_id]
         
         if start_date:
@@ -155,3 +145,32 @@ class TransactionRepository(BaseRepository):
         
         results = db_client.fetch_all(query, tuple(params))
         return [dict(row) for row in results]
+    
+    async def get_summary(self, user_id: str, period: str = 'month') -> Dict[str, Any]:
+        # Optimized summary query - single query instead of multiple
+        end_date = datetime.now()
+        if period == 'week':
+            start_date = end_date - timedelta(days=7)
+        elif period == 'year':
+            start_date = end_date - timedelta(days=365)
+        else:
+            start_date = end_date - timedelta(days=30)
+        
+        query = """
+            SELECT 
+                COALESCE(SUM(CASE WHEN transaction_type = 'income' THEN amount ELSE 0 END), 0) as total_income,
+                COALESCE(SUM(CASE WHEN transaction_type = 'expense' THEN amount ELSE 0 END), 0) as total_expense,
+                COUNT(*) as transaction_count
+            FROM transactions 
+            WHERE user_id = ? AND date >= ? AND date <= ?
+        """
+        result = db_client.fetch_one(query, (user_id, start_date.isoformat(), end_date.isoformat()))
+        
+        return {
+            "total_income": result['total_income'] if result else 0,
+            "total_expenses": result['total_expense'] if result else 0,
+            "net_savings": (result['total_income'] - result['total_expense']) if result else 0,
+            "transaction_count": result['transaction_count'] if result else 0,
+            "period_start": start_date,
+            "period_end": end_date
+        }

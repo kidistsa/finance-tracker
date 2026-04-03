@@ -1,48 +1,46 @@
-import plaid
-from plaid.api import plaid_api
-from plaid.model.link_token_create_request import LinkTokenCreateRequest
-from plaid.model.item_public_token_exchange_request import ItemPublicTokenExchangeRequest
-from plaid.model.transactions_get_request import TransactionsGetRequest
-from datetime import datetime, timedelta
-from app.core.config import settings
+# import plaid
+# from plaid.api import plaid_api
+# from plaid.model.link_token_create_request import LinkTokenCreateRequest
+# from plaid.model.item_public_token_exchange_request import ItemPublicTokenExchangeRequest
+# from plaid.model.transactions_sync_request import TransactionsSyncRequest
+# from app.core.config import settings
 
-class PlaidService:
-    def __init__(self):
-        configuration = plaid.Configuration(
-            host=plaid.Environment.Sandbox,
-            api_key={
-                'clientId': settings.PLAID_CLIENT_ID,
-                'secret': settings.PLAID_SECRET,
-            }
-        )
-        self.client = plaid.ApiClient(configuration)
-        self.api_client = plaid_api.PlaidApi(self.client)
+# class PlaidService:
+#     def __init__(self):
+#         configuration = plaid.Configuration(
+#             host=plaid.Environment.Sandbox,  # Use Development for production
+#             api_key={
+#                 'clientId': settings.PLAID_CLIENT_ID,
+#                 'secret': settings.PLAID_SECRET,
+#             }
+#         )
+#         api_client = plaid.ApiClient(configuration)
+#         self.client = plaid_api.PlaidApi(api_client)
     
-    def create_link_token(self, user_id: str):
-        request = LinkTokenCreateRequest(
-            user={"client_user_id": user_id},
-            client_name="Personal Finance Tracker",
-            products=["transactions"],
-            country_codes=["US"],
-            language="en"
-        )
-        response = self.api_client.link_token_create(request)
-        return response['link_token']
+#     def create_link_token(self, user_id: str):
+#         """Create a link token for Plaid Link initialization"""
+#         request = LinkTokenCreateRequest(
+#             user={"client_user_id": user_id},
+#             client_name="Birr Finance Tracker",
+#             products=["transactions"],
+#             country_codes=["US", "GB"],  # Add ET when available
+#             language="en",
+#             webhook="https://your-domain.com/api/plaid/webhook"
+#         )
+#         response = self.client.link_token_create(request)
+#         return response['link_token']
     
-    def exchange_public_token(self, public_token: str):
-        request = ItemPublicTokenExchangeRequest(public_token=public_token)
-        response = self.api_client.item_public_token_exchange(request)
-        return response['access_token']
+#     def exchange_public_token(self, public_token: str):
+#         """Exchange public token for access token"""
+#         request = ItemPublicTokenExchangeRequest(public_token=public_token)
+#         response = self.client.item_public_token_exchange(request)
+#         return response['access_token'], response['item_id']
     
-    def get_transactions(self, access_token: str):
-        now = datetime.now()
-        start_date = (now - timedelta(days=30)).strftime('%Y-%m-%d')
-        end_date = now.strftime('%Y-%m-%d')
-        
-        request = TransactionsGetRequest(
-            access_token=access_token,
-            start_date=start_date,
-            end_date=end_date
-        )
-        response = self.api_client.transactions_get(request)
-        return response['transactions']
+#     def sync_transactions(self, access_token: str, cursor: str = None):
+#         """Sync transactions from Plaid"""
+#         request = TransactionsSyncRequest(
+#             access_token=access_token,
+#             cursor=cursor
+#         )
+#         response = self.client.transactions_sync(request)
+#         return response['transactions'], response['next_cursor']

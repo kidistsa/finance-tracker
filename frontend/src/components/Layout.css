@@ -1,10 +1,10 @@
 .layout {
   min-height: 100vh;
-  background: #f5f7fa;
+  background: #faf5f8;
 }
 
 .navbar {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #d64daf 0%, #a24b9e 100%);
   color: white;
   padding: 1rem 2rem;
   display: flex;

@@ -1,12 +1,10 @@
-from fastapi import FastAPI, Depends, HTTPException, status
+﻿from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-from fastapi.exceptions import RequestValidationError
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from app.core.config import settings
-from app.api.routes import transactions, budgets, auth, plaid
+from app.api.routes import transactions, budgets, auth, plaid, recurring, email, admin, security, receipt_scanner, analytics
 from app.core.firebase import firebase_client
 
 # Configure logging
@@ -27,29 +25,31 @@ app = FastAPI(
     redoc_url="/api/redoc" if settings.DEBUG else None,
 )
 
-# Set up CORS
+# CORS - Allow all origins for development
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173"],
+    allow_origins=["http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173", "*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # Include routers
 app.include_router(auth.router, prefix=settings.API_STR)
 app.include_router(transactions.router, prefix=settings.API_STR)
 app.include_router(budgets.router, prefix=settings.API_STR)
-
-# app.include_router(plaid.router, prefix=settings.API_STR)
+app.include_router(recurring.router, prefix=settings.API_STR)
+app.include_router(email.router, prefix=settings.API_STR)
+app.include_router(admin.router, prefix=settings.API_STR)
+app.include_router(security.router, prefix=settings.API_STR)
+# app.include_router(receipt_scanner.router, prefix=settings.API_STR)
+app.include_router(analytics.router, prefix=settings.API_STR)
 
 
 @app.on_event("startup")
 async def startup_event():
-    """Initialize services on startup"""
     logger.info("Starting up Personal Finance Tracker API")
-    
-    # Initialize Firebase
     try:
         firebase_client.get_db()
         logger.info("Firebase initialized successfully")
@@ -58,16 +58,12 @@ async def startup_event():
         if not settings.DEBUG:
             raise e
 
-
 @app.on_event("shutdown")
 async def shutdown_event():
-    """Cleanup on shutdown"""
     logger.info("Shutting down Personal Finance Tracker API")
-
 
 @app.get("/")
 async def root():
-    """Root endpoint"""
     return {
         "app": settings.APP_NAME,
         "version": settings.APP_VERSION,
@@ -75,27 +71,12 @@ async def root():
         "status": "operational"
     }
 
-
 @app.get("/health")
 async def health_check():
-    """Health check endpoint"""
     return {
         "status": "healthy",
         "timestamp": datetime.utcnow().isoformat()
     }
-
-
-@app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request, exc):
-    """Handle validation errors"""
-    return JSONResponse(
-        status_code=422,
-        content={
-            "detail": exc.errors(),
-            "body": exc.body
-        }
-    )
-
 
 if __name__ == "__main__":
     import uvicorn

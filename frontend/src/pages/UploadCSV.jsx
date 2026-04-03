@@ -37,12 +37,12 @@ const UploadCSV = () => {
           </button>
         </form>
         {message && <div style={styles.message}>{message}</div>}
-        <div style={styles.sample}>
+        {/* <div style={styles.sample}>
           <h4>Sample CSV Format:</h4>
           <pre>date,amount,description,category,transaction_type
 2024-03-25,50.00,Starbucks Coffee,food_groceries,expense
 2024-03-25,1200.00,Salary Payment,other_income,income</pre>
-        </div>
+        </div> */}
       </div>
     </div>
   );
@@ -52,9 +52,10 @@ const styles = {
   container: { padding: '2rem', maxWidth: '800px', margin: '0 auto' },
   card: { background: 'white', padding: '2rem', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' },
   input: { display: 'block', margin: '1rem 0', padding: '0.5rem' },
-  button: { background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white', border: 'none', padding: '0.75rem 1.5rem', borderRadius: '5px', cursor: 'pointer' },
+  button: { background: 'linear-gradient(135deg, #d64daf 0%, #b83e8f 100%)', color: 'white', border: 'none', padding: '0.75rem 1.5rem', borderRadius: '5px', cursor: 'pointer' },
   message: { marginTop: '1rem', padding: '0.75rem', background: '#e8f5e9', color: '#2e7d32', borderRadius: '5px' },
   sample: { marginTop: '2rem', padding: '1rem', background: '#f5f5f5', borderRadius: '5px' },
 };
 
 export default UploadCSV;
+

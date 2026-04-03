@@ -1,4 +1,3 @@
-﻿
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/authContext';
@@ -31,15 +30,36 @@ const Register = () => {
         <form onSubmit={handleSubmit}>
           <div style={styles.inputGroup}>
             <label style={styles.label}>Full Name</label>
-            <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} required style={styles.input} placeholder="Enter your full name" />
+            <input
+              type="text"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              required
+              style={styles.input}
+              placeholder="Enter your full name"
+            />
           </div>
           <div style={styles.inputGroup}>
             <label style={styles.label}>Email</label>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required style={styles.input} placeholder="Enter your email" />
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              style={styles.input}
+              placeholder="Enter your email"
+            />
           </div>
           <div style={styles.inputGroup}>
             <label style={styles.label}>Password</label>
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required style={styles.input} placeholder="Enter your password" />
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              style={styles.input}
+              placeholder="Enter your password"
+            />
           </div>
           <button type="submit" disabled={loading} style={styles.button}>
             {loading ? 'Creating account...' : 'Register'}
@@ -59,7 +79,7 @@ const styles = {
     justifyContent: 'center',
     alignItems: 'center',
     minHeight: '100vh',
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    background: 'linear-gradient(135deg, #e8b4d4 0%, #d48fb3 100%)', 
   },
   card: {
     background: 'white',
@@ -74,10 +94,10 @@ const styles = {
   inputGroup: { marginBottom: '1.2rem' },
   label: { display: 'block', marginBottom: '0.5rem', color: '#555', fontWeight: '500' },
   input: { width: '100%', padding: '0.75rem', border: '1px solid #ddd', borderRadius: '8px', fontSize: '1rem', boxSizing: 'border-box' },
-  button: { width: '100%', padding: '0.75rem', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white', border: 'none', borderRadius: '8px', fontSize: '1rem', fontWeight: '600', cursor: 'pointer' },
+  button: { width: '100%', padding: '0.75rem', background: 'linear-gradient(135deg, #d64daf 0%, #b83e8f 100%)', color: 'white', border: 'none', borderRadius: '8px', fontSize: '1rem', fontWeight: '600', cursor: 'pointer' },
   error: { background: '#fee', color: '#c62828', padding: '0.75rem', borderRadius: '8px', marginBottom: '1rem', textAlign: 'center' },
   link: { textAlign: 'center', marginTop: '1.5rem', color: '#666' },
-  linkText: { color: '#667eea', textDecoration: 'none', fontWeight: '500' },
+  linkText: { color: '#d64daf', textDecoration: 'none', fontWeight: '500' },
 };
 
 export default Register;

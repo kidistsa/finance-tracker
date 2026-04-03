@@ -6,18 +6,23 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const { login, loading } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
     setError('');
+    
     const result = await login(email, password);
+    
     if (result.success) {
       navigate('/dashboard');
     } else {
       setError(result.error);
     }
+    setLoading(false);
   };
 
   return (
@@ -56,6 +61,9 @@ const Login = () => {
         <p style={styles.link}>
           Don't have an account? <Link to="/register" style={styles.linkText}>Create one</Link>
         </p>
+        <p style={styles.link}>
+          <Link to="/forgot-password" style={styles.linkText}>Forgot password?</Link>
+        </p>
       </div>
     </div>
   );
@@ -67,25 +75,25 @@ const styles = {
     justifyContent: 'center',
     alignItems: 'center',
     minHeight: '100vh',
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    background: 'linear-gradient(135deg, #d64daf 0%, #b83e8f 100%)',
   },
   card: {
     background: 'white',
-    padding: '2.5rem',
+    padding: '2rem',
     borderRadius: '12px',
     width: '100%',
-    maxWidth: '420px',
+    maxWidth: '400px',
     boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
   },
   title: { textAlign: 'center', marginBottom: '0.5rem', color: '#333', fontSize: '1.8rem', fontWeight: 'bold' },
   subtitle: { textAlign: 'center', marginBottom: '1.5rem', color: '#666', fontSize: '0.9rem' },
-  inputGroup: { marginBottom: '1.2rem' },
+  inputGroup: { marginBottom: '1rem' },
   label: { display: 'block', marginBottom: '0.5rem', color: '#555', fontWeight: '500' },
   input: { width: '100%', padding: '0.75rem', border: '1px solid #ddd', borderRadius: '8px', fontSize: '1rem', boxSizing: 'border-box' },
-  button: { width: '100%', padding: '0.75rem', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white', border: 'none', borderRadius: '8px', fontSize: '1rem', fontWeight: '600', cursor: 'pointer' },
+  button: { width: '100%', padding: '0.75rem', background: 'linear-gradient(135deg, #d64daf 0%, #b83e8f 100%)', color: 'white', border: 'none', borderRadius: '8px', fontSize: '1rem', fontWeight: '600', cursor: 'pointer' },
   error: { background: '#fee', color: '#c62828', padding: '0.75rem', borderRadius: '8px', marginBottom: '1rem', textAlign: 'center' },
-  link: { textAlign: 'center', marginTop: '1.5rem', color: '#666' },
-  linkText: { color: '#667eea', textDecoration: 'none', fontWeight: '500' },
+  link: { textAlign: 'center', marginTop: '1rem', color: '#666' },
+  linkText: { color: '#d64daf', textDecoration: 'none', fontWeight: '500' },
 };
 
 export default Login;

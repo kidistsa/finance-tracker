@@ -1,26 +1,40 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/authContext';
+import { useTheme } from '../context/themeContext';
 import { transactionService } from '../services/api';
+import { exportTransactionsToPDF } from '../utils/pdfExport';
+import MonthlyComparison from '../components/MonthlyComparison';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement } from 'chart.js';
 import { Bar, Doughnut } from 'react-chartjs-2';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement);
 
 const Dashboard = () => {
-  const { token, logout } = useAuth();
+  const { logout } = useAuth();
+  const { darkMode } = useTheme();
   const [summary, setSummary] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [period, setPeriod] = useState('month');
+  const [sendingEmail, setSendingEmail] = useState(false);
+  
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordMessage, setPasswordMessage] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [changingPassword, setChangingPassword] = useState(false);
 
   useEffect(() => {
     fetchData();
-  }, []);
-
+  }, [period]);
+ 
   const fetchData = async () => {
     try {
       const [summaryRes, transactionsRes] = await Promise.all([
-        transactionService.getSummary('month'),
-        transactionService.getAll({ limit: 10 })
+        transactionService.getSummary(period),
+        transactionService.getAll({ limit: 100 })
       ]);
       setSummary(summaryRes.data);
       setTransactions(transactionsRes.data);
@@ -31,9 +45,120 @@ const Dashboard = () => {
     }
   };
 
-  if (loading) return <div style={styles.loading}>Loading dashboard...</div>;
+  const sendEmailReport = async () => {
+    setSendingEmail(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:9000/api/email/weekly-report', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + token,
+          'Content-Type': 'application/json'
+        }
+      });
+      alert('📧 Report sent! Check your email inbox.');
+    } catch (error) {
+      alert('Failed to send email. Please try again.');
+    } finally {
+      setSendingEmail(false);
+    }
+  };
 
-  // Chart Data
+  const sendVerification = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:9000/api/auth/send-verification', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const data = await response.json();
+      alert(data.message || 'Verification email sent! Check your terminal for the link.');
+    } catch (error) {
+      alert('Failed to send verification email');
+    }
+  };
+
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    
+    if (newPassword !== confirmPassword) {
+      setPasswordError('New passwords do not match');
+      return;
+    }
+    
+    if (newPassword.length < 6) {
+      setPasswordError('Password must be at least 6 characters');
+      return;
+    }
+    
+    setChangingPassword(true);
+    setPasswordError('');
+    setPasswordMessage('');
+    
+    const authToken = localStorage.getItem('token');
+    
+    try {
+      const response = await fetch('http://localhost:9000/api/auth/change-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + authToken
+        },
+        body: JSON.stringify({
+          current_password: currentPassword,
+          new_password: newPassword
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        setPasswordMessage('Password changed successfully!');
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+        setTimeout(() => {
+          setShowPasswordModal(false);
+          setPasswordMessage('');
+        }, 2000);
+      } else {
+        setPasswordError(data.detail || 'Failed to change password');
+      }
+    } catch (err) {
+      console.error('Fetch error:', err);
+      setPasswordError('Network error. Please try again.');
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
+  const closeModal = () => {
+    setShowPasswordModal(false);
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setPasswordError('');
+    setPasswordMessage('');
+  };
+
+  const handleExportPDF = () => {
+    if (transactions.length === 0) {
+      alert('No transactions to export. Upload some data first!');
+      return;
+    }
+    
+    const periodNames = { week: 'Last 7 Days', month: 'Last 30 Days', year: 'Last 365 Days' };
+    const now = new Date();
+    let periodStart;
+    if (period === 'week') periodStart = new Date(now.setDate(now.getDate() - 7));
+    else if (period === 'month') periodStart = new Date(now.setDate(now.getDate() - 30));
+    else periodStart = new Date(now.setDate(now.getDate() - 365));
+    
+    exportTransactionsToPDF(transactions, summary, periodNames[period], periodStart, new Date());
+  };
+
+  if (loading) return <div style={{ ...styles.loading, color: darkMode ? '#fff' : '#1a2a4f' }}>Loading dashboard...</div>;
+
   const categoryData = transactions.reduce((acc, t) => {
     if (t.transaction_type === 'expense') {
       acc[t.category] = (acc[t.category] || 0) + t.amount;
@@ -42,11 +167,8 @@ const Dashboard = () => {
   }, {});
 
   const doughnutData = {
-    labels: Object.keys(categoryData),
-    datasets: [{
-      data: Object.values(categoryData),
-      backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'],
-    }],
+    labels: Object.keys(categoryData).map(c => c.replace('_', ' ').toUpperCase()),
+    datasets: [{ data: Object.values(categoryData), backgroundColor: ['#d64daf', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'] }],
   };
 
   const barData = {
@@ -57,42 +179,114 @@ const Dashboard = () => {
     ],
   };
 
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { labels: { color: darkMode ? '#fff' : '#333' } } }
+  };
+
   return (
     <div style={styles.container}>
+      {showPasswordModal && (
+        <div style={styles.modalOverlay} onClick={closeModal}>
+          <div style={{ ...styles.modal, background: darkMode ? '#1e1e2e' : 'white' }} onClick={(e) => e.stopPropagation()}>
+            <div style={styles.modalHeader}>
+              <h2>Change Password</h2>
+              <button onClick={closeModal} style={styles.closeBtn}>&times;</button>
+            </div>
+            <div style={styles.modalBody}>
+              {passwordError && <div style={styles.error}>{passwordError}</div>}
+              {passwordMessage && <div style={styles.success}>{passwordMessage}</div>}
+              <form onSubmit={handleChangePassword}>
+                <div style={styles.inputGroup}>
+                  <label>Current Password</label>
+                  <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} required style={styles.input} />
+                </div>
+                <div style={styles.inputGroup}>
+                  <label>New Password</label>
+                  <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required style={styles.input} />
+                </div>
+                <div style={styles.inputGroup}>
+                  <label>Confirm New Password</label>
+                  <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required style={styles.input} />
+                </div>
+                <div style={styles.modalFooter}>
+                  <button type="button" onClick={closeModal} style={styles.cancelBtn}>Cancel</button>
+                  <button type="submit" disabled={changingPassword} style={styles.saveBtn}>{changingPassword ? 'Changing...' : 'Change Password'}</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div style={styles.header}>
         <h1>Dashboard</h1>
-        <button onClick={logout} style={styles.logoutBtn}>Logout</button>
+        <div style={styles.headerButtons}>
+          <button onClick={sendVerification} style={styles.verifyBtn}>📧 Verify Email</button>
+          <button onClick={sendEmailReport} disabled={sendingEmail} style={styles.emailBtn}>📧 {sendingEmail ? 'Sending...' : 'Email Report'}</button>
+          <button onClick={handleExportPDF} style={styles.exportBtn}>📄 Export PDF</button>
+          <button onClick={() => setShowPasswordModal(true)} style={styles.passwordBtn}>🔐 Change Password</button>
+          <select value={period} onChange={(e) => setPeriod(e.target.value)} style={{ ...styles.periodSelect, background: darkMode ? '#16213e' : 'white', color: darkMode ? '#fff' : '#333' }}>
+            <option value="week">Last 7 Days</option>
+            <option value="month">Last 30 Days</option>
+            <option value="year">Last 365 Days</option>
+          </select>
+          {/* <button onClick={logout} style={styles.logoutBtn}>Logout</button> */}
+        </div>
       </div>
 
       <div style={styles.grid}>
-        <div style={styles.card}><h3>Total Income</h3><p style={{...styles.amount, color: '#4BC0C0'}}></p></div>
-        <div style={styles.card}><h3>Total Expenses</h3><p style={{...styles.amount, color: '#FF6384'}}></p></div>
-        <div style={styles.card}><h3>Net Savings</h3><p style={{...styles.amount, color: '#36A2EB'}}></p></div>
-        <div style={styles.card}><h3>Transactions</h3><p style={styles.amount}>{summary?.transaction_count || 0}</p></div>
+        <div style={{ ...styles.card, background: darkMode ? '#16213e' : 'white', color: darkMode ? '#eee' : '#333' }}>
+          <h3>Total Income</h3>
+          <p style={{...styles.amount, color: '#4BC0C0'}}>Br {summary?.total_income?.toFixed(2) || 0}</p>
+        </div>
+        <div style={{ ...styles.card, background: darkMode ? '#16213e' : 'white', color: darkMode ? '#eee' : '#333' }}>
+          <h3>Total Expenses</h3>
+          <p style={{...styles.amount, color: '#FF6384'}}>Br {summary?.total_expenses?.toFixed(2) || 0}</p>
+        </div>
+        <div style={{ ...styles.card, background: darkMode ? '#16213e' : 'white', color: darkMode ? '#eee' : '#333' }}>
+          <h3>Net Savings</h3>
+          <p style={{...styles.amount, color: summary?.net_savings >= 0 ? '#4BC0C0' : '#FF6384'}}>Br {summary?.net_savings?.toFixed(2) || 0}</p>
+        </div>
+        <div style={{ ...styles.card, background: darkMode ? '#16213e' : 'white', color: darkMode ? '#eee' : '#333' }}>
+          <h3>Transactions</h3>
+          <p style={styles.amount}>{summary?.transaction_count || 0}</p>
+        </div>
       </div>
+
+      <MonthlyComparison />
 
       <div style={styles.chartsGrid}>
-        <div style={styles.chartCard}><h3>Spending by Category</h3><Doughnut data={doughnutData} /></div>
-        <div style={styles.chartCard}><h3>Weekly Trend</h3><Bar data={barData} /></div>
+        <div style={{ ...styles.chartCard, background: darkMode ? '#16213e' : 'white', color: darkMode ? '#eee' : '#333' }}>
+          <h3>Spending by Category</h3>
+          {Object.keys(categoryData).length > 0 ? <Doughnut data={doughnutData} /> : <p>No expense data yet</p>}
+        </div>
+        <div style={{ ...styles.chartCard, background: darkMode ? '#16213e' : 'white', color: darkMode ? '#eee' : '#333' }}>
+          <h3>Weekly Trend</h3>
+          <Bar data={barData} />
+        </div>
       </div>
 
-      <div style={styles.recentCard}>
+      <div style={{ ...styles.recentCard, background: darkMode ? '#16213e' : 'white', color: darkMode ? '#eee' : '#333' }}>
         <h3>Recent Transactions</h3>
-        <table style={styles.table}>
-          <thead><tr><th>Date</th><th>Description</th><th>Category</th><th>Amount</th></tr></thead>
-          <tbody>
-            {transactions.map(t => (
-              <tr key={t.id}>
-                <td>{new Date(t.date).toLocaleDateString()}</td>
-                <td>{t.description}</td>
-                <td>{t.category}</td>
-                <td style={{ color: t.transaction_type === 'income' ? '#4BC0C0' : '#FF6384' }}>
-                  {t.transaction_type === 'income' ? '+' : '-'}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        {transactions.length > 0 ? (
+          <table style={styles.table}>
+            <thead><tr><th>Date</th><th>Description</th><th>Category</th><th>Amount</th></tr></thead>
+            <tbody>
+              {transactions.slice(0, 10).map(t => (
+                <tr key={t.id}>
+                  <td>{new Date(t.date).toLocaleDateString()}</td>
+                  <td>{t.description}</td>
+                  <td><span style={styles.categoryBadge}>{t.category}</span></td>
+                  <td style={{ color: t.transaction_type === 'income' ? '#4BC0C0' : '#FF6384', fontWeight: 'bold' }}>
+                    {t.transaction_type === 'income' ? '+' : '-'}Br {t.amount}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : <p>No transactions yet. Upload a CSV file to get started!</p>}
       </div>
     </div>
   );
@@ -100,16 +294,35 @@ const Dashboard = () => {
 
 const styles = {
   container: { padding: '2rem', maxWidth: '1400px', margin: '0 auto' },
-  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' },
-  logoutBtn: { padding: '0.5rem 1rem', background: '#ff6384', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' },
+  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' },
+  headerButtons: { display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' },
+  verifyBtn: { padding: '0.5rem 0.8rem', background: '#ffce56', color: '#333', border: 'none', borderRadius: '5px', cursor: 'pointer', fontSize: '0.85rem' },
+  emailBtn: { padding: '0.5rem 0.8rem', background: '#d64daf', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontSize: '0.85rem' },
+  exportBtn: { padding: '0.5rem 0.8rem', background: '#2c7a7a', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontSize: '0.85rem' },
+  passwordBtn: { padding: '0.5rem 0.8rem', background: '#4a5568', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontSize: '0.85rem' },
+  periodSelect: { padding: '0.5rem', borderRadius: '5px', border: '1px solid #e2e8f0', cursor: 'pointer' },
+  logoutBtn: { padding: '0.5rem 0.8rem', background: '#d64daf', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontSize: '0.85rem' },
   grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem', marginBottom: '2rem' },
-  card: { background: 'white', padding: '1.5rem', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' },
+  card: { padding: '1.5rem', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' },
   amount: { fontSize: '2rem', fontWeight: 'bold', marginTop: '0.5rem' },
   chartsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '1.5rem', marginBottom: '2rem' },
-  chartCard: { background: 'white', padding: '1.5rem', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' },
-  recentCard: { background: 'white', padding: '1.5rem', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' },
+  chartCard: { padding: '1.5rem', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' },
+  recentCard: { padding: '1.5rem', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' },
   table: { width: '100%', borderCollapse: 'collapse', marginTop: '1rem' },
+  categoryBadge: { padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', background: '#edf2f7' },
   loading: { textAlign: 'center', padding: '2rem', fontSize: '1.2rem' },
+  modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 },
+  modal: { width: '90%', maxWidth: '450px', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)' },
+  modalHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem 1.5rem 0.5rem 1.5rem', borderBottom: '1px solid #e2e8f0' },
+  closeBtn: { background: 'none', border: 'none', fontSize: '1.8rem', cursor: 'pointer', color: '#a0aec0', padding: '0', lineHeight: '1' },
+  modalBody: { padding: '1.5rem' },
+  modalFooter: { display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1.5rem' },
+  inputGroup: { marginBottom: '1.2rem' },
+  input: { width: '100%', padding: '0.75rem', border: '1px solid', borderRadius: '8px', fontSize: '1rem', boxSizing: 'border-box', outline: 'none' },
+  saveBtn: { padding: '0.6rem 1.2rem', background: '#d64daf', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.9rem', fontWeight: '500' },
+  cancelBtn: { padding: '0.6rem 1.2rem', background: '#e2e8f0', color: '#4a5568', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.9rem' },
+  error: { background: '#ffebee', color: '#c62828', padding: '0.75rem', borderRadius: '8px', marginBottom: '1rem', textAlign: 'center', fontSize: '0.85rem' },
+  success: { background: '#e8f5e9', color: '#2e7d32', padding: '0.75rem', borderRadius: '8px', marginBottom: '1rem', textAlign: 'center', fontSize: '0.85rem' }
 };
 
 export default Dashboard;

@@ -24,7 +24,11 @@ class Settings(BaseSettings):
     # CORS - Fixed parsing
     BACKEND_CORS_ORIGINS: List[str] = ["http://localhost:5173", "http://localhost:3000"]
    
-
+ # Email Settings - ADD THESE
+    EMAIL_USER: str = ""
+    EMAIL_PASSWORD: str = ""
+    APP_URL: str = "http://localhost:5173"
+    
     # Firebase
     FIREBASE_CREDENTIALS_PATH: str = "firebase-credentials.json"
     FIREBASE_STORAGE_BUCKET: str = ""
